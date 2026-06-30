@@ -1,0 +1,55 @@
+// Schéma de la base de données — Resa O Loft
+// Base PostgreSQL (Neon), partagée par le développement local et la production.
+
+generator client {
+  provider      = "prisma-client-js"
+  // "native" pour le développement local + cible Linux pour l'hébergement Vercel.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Une réservation de poste en open space, pour une date et un créneau donnés.
+model Reservation {
+  id        String   @id @default(cuid())
+  reference String   @unique // référence courte communiquée au client, ex. "LOFT-7K3QXP"
+  date      DateTime // jour réservé, normalisé à minuit UTC
+  slot      String // "MORNING" | "AFTERNOON" | "FULL_DAY"
+  status    String   @default("CONFIRMED") // "CONFIRMED" | "CANCELLED"
+
+  firstName String
+  lastName  String
+  email     String
+  company   String?
+  phone     String?
+  notes     String?
+
+  createdAt   DateTime  @default(now())
+  cancelledAt DateTime?
+
+  @@index([date])
+  @@index([email])
+  @@index([status])
+}
+
+// Un jour de fermeture (férié, congés, privatisation…). Aucune résa possible ce jour-là.
+model Closure {
+  id        String   @id @default(cuid())
+  date      DateTime @unique // jour fermé, normalisé à minuit UTC
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
+// Paramètres de l'espace (ligne unique, id = 1).
+model Settings {
+  id             Int      @id @default(1)
+  capacity       Int      @default(12) // nombre de postes en open space
+  allowFullDay   Boolean  @default(true)
+  allowHalfDay   Boolean  @default(true)
+  openWeekends   Boolean  @default(false)
+  maxAdvanceDays Int      @default(60) // horizon de réservation (jours à l'avance)
+  updatedAt      DateTime @updatedAt
+}
