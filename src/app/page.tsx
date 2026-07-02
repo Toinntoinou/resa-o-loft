@@ -23,9 +23,9 @@ export default function Home() {
             <span>Le Loft est un espace</span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/naama-wordmark.png"
+              src="/naama-wordmark.svg"
               alt="naama"
-              className="h-3.5 w-auto opacity-70"
+              className="h-4 w-auto opacity-70"
             />
           </div>
           <a href="/admin" className="text-xs text-stone-400 hover:text-stone-600">
