@@ -35,7 +35,7 @@ function confirmationHtml(d: ConfirmationData): string {
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;background:#f5f5f4;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#292524;">
   <div style="max-width:520px;margin:0 auto;padding:24px;">
-    <div style="background:#33675f;color:#fff;border-radius:16px 16px 0 0;padding:24px 28px;">
+    <div style="background:#6e8778;color:#fff;border-radius:16px 16px 0 0;padding:24px 28px;">
       <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:.85;">${escapeHtml(
         SITE_NAME,
       )}</div>
@@ -58,7 +58,7 @@ function confirmationHtml(d: ConfirmationData): string {
       <p style="margin:24px 0 0;color:#78716c;font-size:13px;">Pour annuler ou modifier, répondez simplement à cet email.</p>
       <p style="margin:8px 0 0;color:#78716c;font-size:13px;">À très vite,<br>L'équipe ${escapeHtml(
         SITE_NAME,
-      )}</p>
+      )} · un espace naama</p>
     </div>
   </div>
 </body></html>`;

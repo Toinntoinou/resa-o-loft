@@ -7,19 +7,28 @@ export default function Home() {
       <SiteHeader />
       <main className="mx-auto max-w-3xl px-5 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-stone-900">
+          <h1 className="title-accent text-3xl sm:text-4xl">
             Réservez votre poste
           </h1>
-          <p className="mt-1 text-stone-600">
-            Choisissez une date et un créneau dans l&apos;open space.
+          <p className="mt-2 max-w-xl text-stone-600">
+            Choisissez une date et un créneau dans l&apos;open space du Loft.
             Confirmation immédiate, sans création de compte.
           </p>
         </div>
 
         <BookingApp />
 
-        <footer className="mt-12 border-t border-stone-200 pt-6 text-center text-xs text-stone-400">
-          <a href="/admin" className="hover:text-stone-600">
+        <footer className="mt-12 flex flex-col items-center gap-3 border-t border-brand-100 pt-6 text-center">
+          <div className="flex items-center gap-2 text-xs text-stone-400">
+            <span>Le Loft est un espace</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/naama-wordmark.png"
+              alt="naama"
+              className="h-3.5 w-auto opacity-70"
+            />
+          </div>
+          <a href="/admin" className="text-xs text-stone-400 hover:text-stone-600">
             Espace gestion
           </a>
         </footer>
