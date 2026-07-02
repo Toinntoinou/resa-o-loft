@@ -136,9 +136,12 @@ export async function sendConfirmationEmail(
   if (!emailEnabled()) return { sent: false, reason: "disabled" };
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
+    const replyTo =
+      process.env.EMAIL_REPLY_TO || process.env.EMAIL_ADMIN_NOTIFY || undefined;
     const { error } = await resend.emails.send({
       from: fromAddress(),
       to: d.to,
+      ...(replyTo ? { replyTo } : {}),
       subject: `Réservation confirmée — ${formatLong(d.dateKey)} (${SLOT_LABELS[d.slot]})`,
       html: confirmationHtml(d),
     });
