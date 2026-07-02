@@ -28,9 +28,14 @@ export default function Home() {
               className="h-4 w-auto opacity-70"
             />
           </div>
-          <a href="/admin" className="text-xs text-stone-400 hover:text-stone-600">
-            Espace gestion
-          </a>
+          <div className="flex items-center gap-4 text-xs text-stone-400">
+            <a href="/confidentialite" className="hover:text-stone-600">
+              Politique de confidentialité
+            </a>
+            <a href="/admin" className="hover:text-stone-600">
+              Espace gestion
+            </a>
+          </div>
         </footer>
       </main>
     </div>

@@ -5,10 +5,19 @@ import {
   createToken,
   sessionCookieOptions,
 } from "@/lib/auth";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  // Anti-bruteforce : au plus 8 tentatives / 10 min par adresse IP.
+  if (!rateLimit(`login:${clientIp(req)}`, 8, 10 * 60 * 1000)) {
+    return NextResponse.json(
+      { error: "Trop de tentatives. Réessayez dans quelques minutes." },
+      { status: 429 },
+    );
+  }
+
   let body: unknown;
   try {
     body = await req.json();

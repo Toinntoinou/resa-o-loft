@@ -6,12 +6,21 @@ import { utcDateFromKey } from "@/lib/dates";
 import { generateReference } from "@/lib/reference";
 import { sendConfirmationEmail } from "@/lib/email";
 import { RESERVATION_STATUS, type Slot } from "@/lib/config";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 const OVERBOOK = "OVERBOOK";
 
 export async function POST(req: NextRequest) {
+  // Anti-abus : au plus 8 réservations / 10 min par adresse IP.
+  if (!rateLimit(`resv:${clientIp(req)}`, 8, 10 * 60 * 1000)) {
+    return NextResponse.json(
+      { error: "Trop de réservations en peu de temps. Merci de réessayer plus tard." },
+      { status: 429 },
+    );
+  }
+
   let body: unknown;
   try {
     body = await req.json();

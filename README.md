@@ -154,6 +154,29 @@ git push -u origin main
 
 ---
 
+## Sécurité & RGPD
+
+Mesures en place :
+
+- **HTTPS** partout, en-têtes de sécurité (HSTS, X-Frame-Options, nosniff…).
+- **Données dans l'UE** : base Neon (Francfort) + fonctions Vercel forcées en région **Paris** (`vercel.json` → `cdg1`).
+- **Accès admin** protégé (mot de passe, cookie signé) + **anti-bruteforce** et **anti-spam** (limitation par IP).
+- **Page « Politique de confidentialité »** (`/confidentialite`) + lien au moment de réserver.
+- **Suppression automatique** des réservations après `RETENTION_MONTHS` mois (Vercel Cron quotidien → `/api/cron/purge-reservations`).
+- Un seul cookie technique (session admin), **aucun traceur** → pas de bandeau cookies.
+
+Variables à renseigner dans Vercel (Settings → Environment Variables) :
+
+| Variable | Rôle |
+|---|---|
+| `LEGAL_ENTITY` | Raison sociale du responsable de traitement (ex. `SAS CROCOW`). |
+| `LEGAL_ADDRESS` | Adresse du siège (affichée dans la politique de confidentialité). |
+| `PRIVACY_EMAIL` | Email de contact pour les demandes RGPD. |
+| `RETENTION_MONTHS` | Durée de conservation des réservations (ex. `24`). |
+| `CRON_SECRET` | Longue chaîne aléatoire protégeant la purge automatique. |
+
+À faire côté organisation : tenir un **registre des traitements**, faire valider le texte de la politique par votre référent juridique, et traiter les **demandes de droits** (accès/rectification/suppression) reçues à `PRIVACY_EMAIL` (l'admin permet de modifier/supprimer une réservation).
+
 ## Structure du projet
 
 ```

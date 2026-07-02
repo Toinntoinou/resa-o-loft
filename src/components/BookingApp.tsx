@@ -332,6 +332,19 @@ export function BookingApp() {
             <button type="submit" disabled={submitting} className="btn-primary w-full">
               {submitting ? "Réservation en cours…" : "Confirmer la réservation"}
             </button>
+
+            <p className="text-center text-xs text-stone-400">
+              En confirmant, vous acceptez le traitement de vos données pour la
+              gestion de votre réservation.{" "}
+              <a
+                href="/confidentialite"
+                target="_blank"
+                className="underline hover:text-stone-600"
+              >
+                Politique de confidentialité
+              </a>
+              .
+            </p>
           </form>
         </section>
       )}
