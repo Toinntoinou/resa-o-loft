@@ -1,5 +1,12 @@
 import { Resend } from "resend";
-import { SLOT_LABELS, SLOT_HOURS, SITE_NAME, type Slot } from "./config";
+import {
+  SLOT_LABELS,
+  SLOT_HOURS,
+  SLOT_PRICES,
+  formatPrice,
+  SITE_NAME,
+  type Slot,
+} from "./config";
 import { formatLong } from "./dates";
 
 export type ConfirmationData = {
@@ -50,6 +57,9 @@ function confirmationHtml(d: ConfirmationData): string {
         )}</td></tr>
         <tr><td style="padding:8px 0;color:#78716c;border-top:1px solid #f0efed;">Créneau</td><td style="padding:8px 0;text-align:right;font-weight:600;border-top:1px solid #f0efed;">${escapeHtml(
           slotStr,
+        )}</td></tr>
+        <tr><td style="padding:8px 0;color:#78716c;border-top:1px solid #f0efed;">Tarif</td><td style="padding:8px 0;text-align:right;font-weight:600;border-top:1px solid #f0efed;">${escapeHtml(
+          formatPrice(SLOT_PRICES[d.slot]),
         )}</td></tr>
         <tr><td style="padding:8px 0;color:#78716c;border-top:1px solid #f0efed;">Référence</td><td style="padding:8px 0;text-align:right;font-weight:600;border-top:1px solid #f0efed;">${escapeHtml(
           d.reference,

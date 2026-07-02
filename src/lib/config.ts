@@ -15,6 +15,17 @@ export const SLOT_HOURS: Record<Slot, string> = {
   FULL_DAY: "9h00 – 18h00",
 };
 
+// Tarifs en euros TTC par créneau.
+export const SLOT_PRICES: Record<Slot, number> = {
+  MORNING: 20,
+  AFTERNOON: 20,
+  FULL_DAY: 30,
+};
+
+export function formatPrice(euros: number): string {
+  return `${euros} € TTC`;
+}
+
 export function isSlot(value: unknown): value is Slot {
   return typeof value === "string" && (SLOTS as readonly string[]).includes(value);
 }

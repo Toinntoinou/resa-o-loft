@@ -17,7 +17,7 @@ if (process.env.NODE_ENV !== "production") {
 
 const DEFAULT_SETTINGS = {
   id: 1,
-  capacity: 12,
+  capacity: 20,
   allowFullDay: true,
   allowHalfDay: true,
   openWeekends: false,

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { SLOT_LABELS, type Slot } from "@/lib/config";
+import { SLOT_LABELS, SLOT_PRICES, formatPrice, type Slot } from "@/lib/config";
 import { formatLong, formatMedium, todayKey } from "@/lib/dates";
 
 type Reservation = {
@@ -158,7 +158,9 @@ function ReservationsPanel() {
     return Array.from(map.entries());
   }, [rows]);
 
-  const confirmedCount = rows.filter((r) => r.status === "CONFIRMED").length;
+  const confirmed = rows.filter((r) => r.status === "CONFIRMED");
+  const confirmedCount = confirmed.length;
+  const revenue = confirmed.reduce((sum, r) => sum + (SLOT_PRICES[r.slot] ?? 0), 0);
 
   return (
     <div className="space-y-4">
@@ -200,7 +202,7 @@ function ReservationsPanel() {
           ? "Chargement…"
           : `${rows.length} réservation${rows.length > 1 ? "s" : ""}${
               status === "all" ? ` · ${confirmedCount} confirmée(s)` : ""
-            }`}
+            } · ${formatPrice(revenue)}`}
       </p>
 
       {!loading && groups.length === 0 && (
@@ -222,6 +224,9 @@ function ReservationsPanel() {
               >
                 <span className="badge bg-brand-50 text-brand-700">
                   {SLOT_LABELS[r.slot]}
+                </span>
+                <span className="text-xs font-medium text-stone-500">
+                  {formatPrice(SLOT_PRICES[r.slot])}
                 </span>
                 <div className="min-w-[12rem] flex-1">
                   <div className="font-medium text-stone-900">

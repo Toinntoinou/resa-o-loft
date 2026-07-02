@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DayAvailability } from "@/lib/availability";
 import { Calendar } from "./Calendar";
-import { SLOT_LABELS, SLOT_HOURS, type Slot } from "@/lib/config";
+import {
+  SLOT_LABELS,
+  SLOT_HOURS,
+  SLOT_PRICES,
+  formatPrice,
+  type Slot,
+} from "@/lib/config";
 import { formatLong, todayKey } from "@/lib/dates";
 
 function pad(n: number) {
@@ -165,6 +171,7 @@ export function BookingApp() {
             label="Créneau"
             value={`${SLOT_LABELS[confirmation.slot]} · ${SLOT_HOURS[confirmation.slot]}`}
           />
+          <Row label="Tarif" value={formatPrice(SLOT_PRICES[confirmation.slot])} />
           <Row label="Référence" value={confirmation.reference} last />
         </div>
 
@@ -233,7 +240,12 @@ export function BookingApp() {
                     {SLOT_HOURS[opt.slot]}
                   </span>
                   <span
-                    className={`mt-2 text-xs ${
+                    className={`mt-1.5 text-sm font-semibold ${active ? "text-white" : "text-brand-700"}`}
+                  >
+                    {formatPrice(SLOT_PRICES[opt.slot])}
+                  </span>
+                  <span
+                    className={`mt-1 text-xs ${
                       !opt.enabled
                         ? "text-stone-300"
                         : active

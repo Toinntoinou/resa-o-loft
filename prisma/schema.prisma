@@ -46,7 +46,7 @@ model Closure {
 // Paramètres de l'espace (ligne unique, id = 1).
 model Settings {
   id             Int      @id @default(1)
-  capacity       Int      @default(12) // nombre de postes en open space
+  capacity       Int      @default(20) // nombre de postes en open space
   allowFullDay   Boolean  @default(true)
   allowHalfDay   Boolean  @default(true)
   openWeekends   Boolean  @default(false)

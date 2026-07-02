@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/api";
-import { SLOT_LABELS, type Slot } from "@/lib/config";
+import { SLOT_LABELS, SLOT_PRICES, type Slot } from "@/lib/config";
 import {
   dateKeyFromUtc,
   formatMedium,
@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
     "Référence",
     "Date",
     "Créneau",
+    "Tarif (€ TTC)",
     "Statut",
     "Prénom",
     "Nom",
@@ -66,6 +67,7 @@ export async function GET(req: NextRequest) {
         csvCell(r.reference),
         csvCell(formatMedium(key)),
         csvCell(SLOT_LABELS[r.slot as Slot] ?? r.slot),
+        csvCell(String(SLOT_PRICES[r.slot as Slot] ?? "")),
         csvCell(STATUS_LABELS[r.status] ?? r.status),
         csvCell(r.firstName),
         csvCell(r.lastName),

@@ -8,7 +8,7 @@ async function main() {
     update: {},
     create: {
       id: 1,
-      capacity: 12,
+      capacity: 20,
       allowFullDay: true,
       allowHalfDay: true,
       openWeekends: false,
