@@ -4,7 +4,7 @@ import { bookingSchema } from "@/lib/validation";
 import { getDayAvailability } from "@/lib/availability";
 import { utcDateFromKey } from "@/lib/dates";
 import { generateReference } from "@/lib/reference";
-import { sendConfirmationEmail } from "@/lib/email";
+import { sendConfirmationEmail, sendAdminNotification } from "@/lib/email";
 import { RESERVATION_STATUS, type Slot } from "@/lib/config";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 
@@ -124,8 +124,9 @@ export async function POST(req: NextRequest) {
       throw new Error("Impossible de générer une référence unique.");
     });
 
-    // Email de confirmation (hors transaction ; un échec n'annule pas la résa).
-    const email = await sendConfirmationEmail({
+    // Places restantes ce jour-là, après cette réservation (pour la notif exploitant).
+    const dayAfter = await getDayAvailability(data.date);
+    const emailData = {
       to: reservation.email,
       firstName: reservation.firstName,
       lastName: reservation.lastName,
@@ -133,7 +134,19 @@ export async function POST(req: NextRequest) {
       slot: reservation.slot as Slot,
       reference: reservation.reference,
       company: reservation.company,
-    });
+      phone: reservation.phone,
+      remaining: {
+        capacity: dayAfter.capacity,
+        morning: dayAfter.morningRemaining,
+        afternoon: dayAfter.afternoonRemaining,
+        fullDay: dayAfter.fullDayRemaining,
+      },
+    };
+
+    // Emails (hors transaction ; un échec n'annule pas la résa).
+    // La notif exploitant est indépendante de l'email client.
+    const email = await sendConfirmationEmail(emailData);
+    await sendAdminNotification(emailData);
 
     return NextResponse.json(
       {

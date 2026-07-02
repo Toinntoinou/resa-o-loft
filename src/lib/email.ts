@@ -9,6 +9,13 @@ import {
 } from "./config";
 import { formatLong } from "./dates";
 
+export type DayRemaining = {
+  capacity: number;
+  morning: number;
+  afternoon: number;
+  fullDay: number;
+};
+
 export type ConfirmationData = {
   to: string;
   firstName: string;
@@ -17,7 +24,11 @@ export type ConfirmationData = {
   slot: Slot;
   reference: string;
   company?: string | null;
+  phone?: string | null;
+  remaining?: DayRemaining;
 };
+
+export type SendResult = { sent: boolean; reason?: string };
 
 export function emailEnabled(): boolean {
   return Boolean(process.env.RESEND_API_KEY);
@@ -35,6 +46,16 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+function row(label: string, value: string, first = false): string {
+  const border = first ? "" : "border-top:1px solid #f0efed;";
+  return `<tr><td style="padding:8px 0;color:#78716c;${border}">${escapeHtml(
+    label,
+  )}</td><td style="padding:8px 0;text-align:right;font-weight:600;${border}">${escapeHtml(
+    value,
+  )}</td></tr>`;
+}
+
+// ─── Email client ──────────────────────────────────────────────────
 function confirmationHtml(d: ConfirmationData): string {
   const dateStr = formatLong(d.dateKey);
   const slotStr = `${SLOT_LABELS[d.slot]} (${SLOT_HOURS[d.slot]})`;
@@ -52,18 +73,10 @@ function confirmationHtml(d: ConfirmationData): string {
       <p style="margin:0 0 16px;">Bonjour ${escapeHtml(d.firstName)},</p>
       <p style="margin:0 0 20px;">Votre poste en open space est réservé. Voici le récapitulatif :</p>
       <table style="width:100%;border-collapse:collapse;font-size:15px;">
-        <tr><td style="padding:8px 0;color:#78716c;">Date</td><td style="padding:8px 0;text-align:right;font-weight:600;text-transform:capitalize;">${escapeHtml(
-          dateStr,
-        )}</td></tr>
-        <tr><td style="padding:8px 0;color:#78716c;border-top:1px solid #f0efed;">Créneau</td><td style="padding:8px 0;text-align:right;font-weight:600;border-top:1px solid #f0efed;">${escapeHtml(
-          slotStr,
-        )}</td></tr>
-        <tr><td style="padding:8px 0;color:#78716c;border-top:1px solid #f0efed;">Tarif</td><td style="padding:8px 0;text-align:right;font-weight:600;border-top:1px solid #f0efed;">${escapeHtml(
-          formatPrice(SLOT_PRICES[d.slot]),
-        )}</td></tr>
-        <tr><td style="padding:8px 0;color:#78716c;border-top:1px solid #f0efed;">Référence</td><td style="padding:8px 0;text-align:right;font-weight:600;border-top:1px solid #f0efed;">${escapeHtml(
-          d.reference,
-        )}</td></tr>
+        ${row("Date", dateStr, true)}
+        ${row("Créneau", slotStr)}
+        ${row("Tarif", formatPrice(SLOT_PRICES[d.slot]))}
+        ${row("Référence", d.reference)}
       </table>
       <p style="margin:24px 0 0;color:#78716c;font-size:13px;">Pour annuler ou modifier, répondez simplement à cet email.</p>
       <p style="margin:8px 0 0;color:#78716c;font-size:13px;">À très vite,<br>L'équipe ${escapeHtml(
@@ -74,48 +87,85 @@ function confirmationHtml(d: ConfirmationData): string {
 </body></html>`;
 }
 
+// ─── Email de notification à l'exploitant ──────────────────────────
 function adminNotifyHtml(d: ConfirmationData): string {
-  const who = `${escapeHtml(d.firstName)} ${escapeHtml(d.lastName)}`;
-  const co = d.company ? ` (${escapeHtml(d.company)})` : "";
-  return `<div style="font-family:Segoe UI,Arial,sans-serif;font-size:15px;color:#292524;">
-    <p><strong>Nouvelle réservation</strong></p>
-    <p>${who}${co}<br>${escapeHtml(d.to)}</p>
-    <p>${escapeHtml(formatLong(d.dateKey))} — ${escapeHtml(SLOT_LABELS[d.slot])}<br>
-    Référence : ${escapeHtml(d.reference)}</p>
-  </div>`;
+  const dateStr = formatLong(d.dateKey);
+  const slotStr = `${SLOT_LABELS[d.slot]} (${SLOT_HOURS[d.slot]})`;
+  const rem = d.remaining;
+  const remBlock = rem
+    ? `<p style="margin:20px 0 6px;font-weight:600;color:#292524;">Places restantes le ${escapeHtml(
+        dateStr,
+      )}</p>
+       <table style="width:100%;border-collapse:collapse;font-size:15px;">
+         ${row("Matin", `${rem.morning} / ${rem.capacity}`, true)}
+         ${row("Après-midi", `${rem.afternoon} / ${rem.capacity}`)}
+         ${row("Journée entière possible", String(rem.fullDay))}
+       </table>`
+    : "";
+  return `<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;background:#f5f5f4;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#292524;">
+  <div style="max-width:520px;margin:0 auto;padding:24px;">
+    <div style="background:#253728;color:#fff;border-radius:16px 16px 0 0;padding:20px 28px;">
+      <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:.85;">${escapeHtml(
+        SITE_NAME,
+      )}</div>
+      <div style="font-size:20px;font-weight:600;margin-top:4px;">Nouvelle réservation</div>
+    </div>
+    <div style="background:#fff;border-radius:0 0 16px 16px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,.05);">
+      <table style="width:100%;border-collapse:collapse;font-size:15px;">
+        ${row("Client", `${d.firstName} ${d.lastName}`, true)}
+        ${row("Société", d.company || "—")}
+        ${row("Email", d.to)}
+        ${row("Téléphone", d.phone || "—")}
+        ${row("Date", dateStr)}
+        ${row("Créneau", slotStr)}
+        ${row("Tarif", formatPrice(SLOT_PRICES[d.slot]))}
+        ${row("Référence", d.reference)}
+      </table>
+      ${remBlock}
+    </div>
+  </div>
+</body></html>`;
 }
 
-export type SendResult = { sent: boolean; reason?: string };
-
-/** Envoie l'email de confirmation au client (et notifie l'admin si configuré).
- *  Ne lève jamais : en cas d'échec ou si l'email est désactivé, renvoie sent:false. */
+/** Email de confirmation au client. Ne lève jamais. */
 export async function sendConfirmationEmail(
   d: ConfirmationData,
 ): Promise<SendResult> {
   if (!emailEnabled()) return { sent: false, reason: "disabled" };
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
-    const from = fromAddress();
-
     const { error } = await resend.emails.send({
-      from,
+      from: fromAddress(),
       to: d.to,
       subject: `Réservation confirmée — ${formatLong(d.dateKey)} (${SLOT_LABELS[d.slot]})`,
       html: confirmationHtml(d),
     });
-    if (error) {
-      return { sent: false, reason: error.message ?? "Erreur Resend" };
-    }
+    if (error) return { sent: false, reason: error.message ?? "Erreur Resend" };
+    return { sent: true };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "Erreur email" };
+  }
+}
 
-    const adminTo = process.env.EMAIL_ADMIN_NOTIFY;
-    if (adminTo) {
-      await resend.emails.send({
-        from,
-        to: adminTo,
-        subject: `Nouvelle résa — ${d.firstName} ${d.lastName} (${formatLong(d.dateKey)})`,
-        html: adminNotifyHtml(d),
-      });
-    }
+/** Notification à l'exploitant (adresse EMAIL_ADMIN_NOTIFY). Indépendante de
+ *  l'email client, et ne lève jamais. */
+export async function sendAdminNotification(
+  d: ConfirmationData,
+): Promise<SendResult> {
+  const adminTo = process.env.EMAIL_ADMIN_NOTIFY;
+  if (!emailEnabled() || !adminTo) return { sent: false, reason: "disabled" };
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const { error } = await resend.emails.send({
+      from: fromAddress(),
+      to: adminTo,
+      replyTo: d.to,
+      subject: `Nouvelle résa — ${d.firstName} ${d.lastName} · ${formatLong(d.dateKey)} (${SLOT_LABELS[d.slot]})`,
+      html: adminNotifyHtml(d),
+    });
+    if (error) return { sent: false, reason: error.message ?? "Erreur Resend" };
     return { sent: true };
   } catch (e) {
     return { sent: false, reason: e instanceof Error ? e.message : "Erreur email" };
