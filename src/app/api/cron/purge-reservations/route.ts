@@ -12,6 +12,12 @@ export async function GET(req: NextRequest) {
     if (req.headers.get("authorization") !== `Bearer ${secret}`) {
       return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
     }
+  } else if (process.env.NODE_ENV === "production") {
+    // En production, la purge exige un CRON_SECRET configuré.
+    return NextResponse.json(
+      { error: "CRON_SECRET non configuré." },
+      { status: 503 },
+    );
   }
 
   const cutoff = new Date();

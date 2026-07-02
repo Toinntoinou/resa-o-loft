@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
   }
 
   // BOM UTF-8 pour qu'Excel affiche correctement les accents.
-  const csv = "﻿" + lines.join("\r\n");
+  const csv = "\uFEFF" + lines.join("\r\n");
   return new NextResponse(csv, {
     status: 200,
     headers: {

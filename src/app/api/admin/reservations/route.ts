@@ -26,12 +26,13 @@ export async function GET(req: NextRequest) {
     if (isValidDateKey(to)) where.date.lte = utcDateFromKey(to);
   }
   if (q) {
+    // mode "insensitive" : indispensable sur PostgreSQL (contains y est sensible à la casse).
     where.OR = [
-      { firstName: { contains: q } },
-      { lastName: { contains: q } },
-      { email: { contains: q } },
-      { company: { contains: q } },
-      { reference: { contains: q } },
+      { firstName: { contains: q, mode: "insensitive" } },
+      { lastName: { contains: q, mode: "insensitive" } },
+      { email: { contains: q, mode: "insensitive" } },
+      { company: { contains: q, mode: "insensitive" } },
+      { reference: { contains: q, mode: "insensitive" } },
     ];
   }
 
