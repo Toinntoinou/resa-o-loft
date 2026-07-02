@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import {
   SLOT_LABELS,
   SLOT_HOURS,
@@ -30,12 +31,69 @@ export type ConfirmationData = {
 
 export type SendResult = { sent: boolean; reason?: string };
 
+// ─── Couche d'envoi : SMTP (votre boîte mail) en priorité, sinon Resend ────
+function smtpConfigured(): boolean {
+  return Boolean(
+    process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS,
+  );
+}
+
 export function emailEnabled(): boolean {
-  return Boolean(process.env.RESEND_API_KEY);
+  return smtpConfigured() || Boolean(process.env.RESEND_API_KEY);
 }
 
 function fromAddress(): string {
-  return process.env.EMAIL_FROM || `${SITE_NAME} <onboarding@resend.dev>`;
+  if (process.env.EMAIL_FROM) return process.env.EMAIL_FROM;
+  if (smtpConfigured()) return `${SITE_NAME} <${process.env.SMTP_USER}>`;
+  return `${SITE_NAME} <onboarding@resend.dev>`;
+}
+
+type Message = {
+  to: string;
+  subject: string;
+  html: string;
+  replyTo?: string;
+};
+
+/** Envoie un email via SMTP si configuré, sinon via Resend. Ne lève jamais. */
+async function deliver(msg: Message): Promise<SendResult> {
+  try {
+    if (smtpConfigured()) {
+      const port = Number(process.env.SMTP_PORT || 587);
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port,
+        secure: port === 465, // 465 = TLS implicite ; 587 = STARTTLS
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
+      await transporter.sendMail({
+        from: fromAddress(),
+        to: msg.to,
+        subject: msg.subject,
+        html: msg.html,
+        ...(msg.replyTo ? { replyTo: msg.replyTo } : {}),
+      });
+      return { sent: true };
+    }
+    if (process.env.RESEND_API_KEY) {
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const { error } = await resend.emails.send({
+        from: fromAddress(),
+        to: msg.to,
+        subject: msg.subject,
+        html: msg.html,
+        ...(msg.replyTo ? { replyTo: msg.replyTo } : {}),
+      });
+      if (error) return { sent: false, reason: error.message ?? "Erreur Resend" };
+      return { sent: true };
+    }
+    return { sent: false, reason: "disabled" };
+  } catch (e) {
+    return { sent: false, reason: e instanceof Error ? e.message : "Erreur email" };
+  }
 }
 
 function escapeHtml(s: string): string {
@@ -133,23 +191,14 @@ function adminNotifyHtml(d: ConfirmationData): string {
 export async function sendConfirmationEmail(
   d: ConfirmationData,
 ): Promise<SendResult> {
-  if (!emailEnabled()) return { sent: false, reason: "disabled" };
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const replyTo =
-      process.env.EMAIL_REPLY_TO || process.env.EMAIL_ADMIN_NOTIFY || undefined;
-    const { error } = await resend.emails.send({
-      from: fromAddress(),
-      to: d.to,
-      ...(replyTo ? { replyTo } : {}),
-      subject: `Réservation confirmée — ${formatLong(d.dateKey)} (${SLOT_LABELS[d.slot]})`,
-      html: confirmationHtml(d),
-    });
-    if (error) return { sent: false, reason: error.message ?? "Erreur Resend" };
-    return { sent: true };
-  } catch (e) {
-    return { sent: false, reason: e instanceof Error ? e.message : "Erreur email" };
-  }
+  const replyTo =
+    process.env.EMAIL_REPLY_TO || process.env.EMAIL_ADMIN_NOTIFY || undefined;
+  return deliver({
+    to: d.to,
+    replyTo,
+    subject: `Réservation confirmée — ${formatLong(d.dateKey)} (${SLOT_LABELS[d.slot]})`,
+    html: confirmationHtml(d),
+  });
 }
 
 /** Notification à l'exploitant (adresse EMAIL_ADMIN_NOTIFY). Indépendante de
@@ -158,19 +207,11 @@ export async function sendAdminNotification(
   d: ConfirmationData,
 ): Promise<SendResult> {
   const adminTo = process.env.EMAIL_ADMIN_NOTIFY;
-  if (!emailEnabled() || !adminTo) return { sent: false, reason: "disabled" };
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const { error } = await resend.emails.send({
-      from: fromAddress(),
-      to: adminTo,
-      replyTo: d.to,
-      subject: `Nouvelle résa — ${d.firstName} ${d.lastName} · ${formatLong(d.dateKey)} (${SLOT_LABELS[d.slot]})`,
-      html: adminNotifyHtml(d),
-    });
-    if (error) return { sent: false, reason: error.message ?? "Erreur Resend" };
-    return { sent: true };
-  } catch (e) {
-    return { sent: false, reason: e instanceof Error ? e.message : "Erreur email" };
-  }
+  if (!adminTo) return { sent: false, reason: "disabled" };
+  return deliver({
+    to: adminTo,
+    replyTo: d.to,
+    subject: `Nouvelle résa — ${d.firstName} ${d.lastName} · ${formatLong(d.dateKey)} (${SLOT_LABELS[d.slot]})`,
+    html: adminNotifyHtml(d),
+  });
 }
